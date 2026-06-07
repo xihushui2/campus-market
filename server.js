@@ -39,7 +39,7 @@ const LAN_IP = getLanIP();
 const LAN_URL = `http://${LAN_IP}:${PORT}`;
 
 // ========== Middleware ==========
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ========== 管理权限验证中间件 ==========
