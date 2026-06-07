@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>🏪 商家中心 - 校园经济平台</title>
+  <style>
+    :root{--accent:#6366f1;--accent-light:#818cf8;--accent-bg:#eef2ff;--bg:#f5f5f5;--surface:#ffffff;--border:#e5e7eb;--text:#1a1a2e;--text-dim:#6b7280;--red:#ef4444;--red-bg:#fef2f2;--green:#10b981;--green-bg:#ecfdf5;--orange:#f59e0b;--orange-bg:#fffbeb;--radius:14px;--radius-sm:10px;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
+    .login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#6366f1 0%,#818cf8 50%,#a78bfa 100%);padding:20px}
+    .login-card{background:#fff;border-radius:20px;padding:40px 32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);text-align:center}
+    .login-card .logo-icon{font-size:3rem;margin-bottom:8px}
+    .login-card h1{font-size:1.3rem;margin-bottom:4px;color:#1a1a2e}
+    .login-card .sub{font-size:.85rem;color:#6b7280;margin-bottom:24px}
+    .login-card .tab-row{display:flex;gap:4px;margin-bottom:24px;background:#f3f4f6;border-radius:10px;padding:4px}
+    .login-card .tab-btn{flex:1;padding:10px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem;background:transparent;color:#6b7280;transition:all .15s;font-family:inherit}
+    .login-card .tab-btn.active{background:#fff;color:#6366f1;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .app-shell{display:none;min-height:100vh}.app-shell.active{display:flex}
+    .sidebar{width:240px;background:#1a1a2e;color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .25s}
+    .sidebar-logo{padding:20px;font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.1)}
+    .sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
+    .sidebar-nav a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:rgba(255,255,255,.65);text-decoration:none;font-size:.88rem;transition:all .15s;border-left:3px solid transparent;font-weight:500}
+    .sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.06)}
+    .sidebar-nav a.active{color:#fff;background:rgba(99,102,241,.2);border-left-color:var(--accent-light)}
+    .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1);font-size:.78rem;color:rgba(255,255,255,.4)}
+    .main-area{flex:1;margin-left:240px;display:flex;flex-direction:column;min-height:100vh}
+    .main-topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+    .main-topbar .hamburger{display:none;background:none;border:none;font-size:1.4rem;cursor:pointer;padding:6px}
+    .main-content{padding:24px;flex:1;max-width:1200px;width:100%}
+    .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+    .stat-card{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;align-items:center;gap:14px}
+    .stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+    .stat-icon.blue{background:#eef2ff;color:#6366f1}.stat-icon.green{background:#ecfdf5;color:#10b981}.stat-icon.orange{background:#fffbeb;color:#f59e0b}.stat-icon.red{background:#fef2f2;color:#ef4444}
+    .stat-info .stat-num{font-size:1.5rem;font-weight:800;line-height:1.2}.stat-info .stat-lbl{font-size:.8rem;color:#6b7280}
+    .panel{display:none}.panel.active{display:block}
+    .panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}.panel-header h2{font-size:1.15rem}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s;font-family:inherit;white-space:nowrap}
+    .btn:active{transform:scale(.97)}.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#4f46e5}
+    .btn-outline{background:transparent;border:2px solid var(--accent);color:var(--accent)}.btn-outline:hover{background:var(--accent-bg)}
+    .btn-success{background:var(--green);color:#fff}.btn-danger{background:var(--red-bg);color:var(--red)}.btn-danger:hover{background:#fee2e2}
+    .btn-sm{padding:6px 12px;font-size:.78rem;border-radius:6px}.btn-block{width:100%;justify-content:center}.btn-ghost{background:#f3f4f6;color:#6b7280}.btn-ghost:hover{background:#e5e7eb}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .item-card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .item-img{width:64px;height:64px;border-radius:10px;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;border:1px solid #e5e7eb;object-fit:cover;overflow:hidden}
+    .item-body{flex:1;min-width:180px}.item-title{font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .item-sub{font-size:.78rem;color:#6b7280;margin-top:2px}.item-price-tag{font-weight:800;color:#6366f1;font-size:1.1rem;min-width:70px;text-align:right}
+    .item-status{padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:700}.item-status.on{background:#ecfdf5;color:#065f46}.item-status.off{background:#fef2f2;color:#991b1b}
+    .item-actions{display:flex;gap:6px;flex-shrink:0}.tag{padding:1px 7px;border-radius:4px;font-size:.68rem;font-weight:700;white-space:nowrap}
+    .tag-hot{background:#fee2e2;color:#dc2626}.tag-qr{background:#ecfdf5;color:#065f46}
+    .order-card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:10px}
+    .order-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+    .order-badge{padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:700}
+    .order-badge.pending{background:#fffbeb;color:#b45309}.order-badge.confirmed{background:#eef2ff;color:#4338ca}.order-badge.done{background:#ecfdf5;color:#065f46}
+    .order-items{font-size:.85rem;color:#6b7280;margin-bottom:6px}.order-total{font-weight:700;color:#6366f1}.order-buyer{font-size:.8rem;color:#6b7280;margin-top:6px}
+    .form-group{margin-bottom:14px}.form-group label{display:block;font-weight:600;margin-bottom:4px;font-size:.85rem}
+    .form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-size:.88rem;font-family:inherit;outline:none;transition:border .2s}
+    .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent)}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-hint{font-size:.75rem;color:#9ca3af;margin-top:4px}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s}
+    @keyframes fadeIn{from{opacity:0}}
+    .modal{background:#fff;border-radius:20px 20px 0 0;padding:28px 20px calc(28px + env(safe-area-inset-bottom));max-width:540px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 -4px 40px rgba(0,0,0,.15);animation:slideUp .25s;position:relative}
+    @keyframes slideUp{from{transform:translateY(100%);opacity:0}}
+    @media(min-width:640px){.modal-overlay{align-items:center}.modal{border-radius:var(--radius);padding:28px;max-height:90vh}}
+    .modal h2{font-size:1.15rem;margin-bottom:16px}
+    .modal-close-btn{position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;background:#f3f4f6;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#6b7280}
+    .upload-zone{border:2px dashed #d1d5db;border-radius:12px;padding:24px;text-align:center;background:#f9fafb;cursor:pointer;transition:all .2s}
+    .upload-zone:hover{border-color:var(--accent);background:#eef2ff}.upload-zone.has-img{border-style:solid;border-color:var(--green);background:#ecfdf5}
+    .upload-zone img{max-width:200px;max-height:140px;border-radius:8px;margin-top:8px}
+    .qr-section{margin:16px 0;padding:16px;background:#f9fafb;border-radius:12px;border:2px dashed #d1d5db}
+    .qr-section-title{font-weight:700;font-size:.88rem;margin-bottom:4px}.qr-section-desc{font-size:.75rem;color:#6b7280;margin-bottom:10px}
+    .qr-preview-box{width:100px;height:100px;border:2px solid #e5e7eb;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;flex-shrink:0}
+    .qr-preview-box img{width:100%;height:100%;object-fit:contain}.qr-empty{font-size:.7rem;color:#9ca3af;text-align:center}
+    .toast{position:fixed;top:16px;left:50%;transform:translate(-50%,-120%);padding:12px 20px;border-radius:10px;font-weight:600;font-size:.85rem;z-index:999;transition:transform .3s;text-align:center;max-width:90vw;pointer-events:none;box-shadow:0 8px 40px rgba(0,0,0,.15)}
+    .toast.show{transform:translate(-50%,0)}.toast.success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}.toast.error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+    .empty{text-align:center;padding:60px 20px;color:#9ca3af}.empty-icon{font-size:3rem;margin-bottom:10px}.empty p{margin-bottom:6px}
+    .setting-card{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:14px}
+    .setting-card h3{font-size:1rem;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+    .shop-qr-preview{width:160px;height:160px;border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:0 auto}
+    .shop-qr-preview img{width:100%;height:100%;object-fit:contain}
+    @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main-area{margin-left:0}.main-topbar .hamburger{display:block}.main-content{padding:16px}.stat-row{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}.item-card{flex-direction:column;align-items:flex-start}.item-price-tag{text-align:left}}
+  </style>
+</head>
+<body>
+
+<div class="login-page" id="login-page">
+  <div class="login-card">
+    <div class="logo-icon">🏪</div>
+    <h1>商家中心</h1>
+    <p class="sub">校园经济平台 · 商家入驻</p>
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="login">🔑 登录</button>
+      <button class="tab-btn" data-tab="register">✨ 入驻</button>
+    </div>
+    <form id="login-form" style="text-align:left;">
+      <div class="form-group"><label>手机号 / 学号</label><input type="text" id="login-id" placeholder="请输入手机号或学号" autocomplete="username" /></div>
+      <div class="form-group"><label>密码</label><input type="password" id="login-pass" placeholder="请输入密码" autocomplete="current-password" /></div>
+      <button type="submit" class="btn btn-primary btn-block">🔑 登录商家中心</button>
+    </form>
+    <form id="register-form" style="text-align:left;display:none;">
+      <div class="form-group"><label>店铺名称 *</label><input type="text" id="reg-shop-name" placeholder="如：摄影社·小明" maxlength="30" /></div>
+      <div class="form-group"><label>真实姓名 *</label><input type="text" id="reg-name" placeholder="请输入真实姓名" maxlength="20" /></div>
+      <div class="form-row">
+        <div class="form-group"><label>学号 *</label><input type="text" id="reg-student-id" placeholder="校园卡号/学号" /></div>
+        <div class="form-group"><label>手机号 *</label><input type="tel" id="reg-phone" placeholder="11位手机号" maxlength="11" /></div>
+      </div>
+      <div class="form-group"><label>经营类目</label><select id="reg-category"><option value="生活服务">生活服务</option><option value="技术服务">技术服务</option><option value="学习资料">学习资料</option><option value="兴趣培训">兴趣培训</option><option value="闲置交易">闲置交易</option><option value="餐饮美食">餐饮美食</option></select></div>
+      <div class="form-group"><label>设置密码 *</label><input type="password" id="reg-pass" placeholder="至少6位" minlength="6" /></div>
+      <div class="form-group"><label>店铺简介</label><textarea id="reg-desc" rows="2" placeholder="简单介绍一下你卖什么..." maxlength="200"></textarea></div>
+      <button type="submit" class="btn btn-primary btn-block">✨ 提交入驻申请</button>
+      <p class="form-hint" style="text-align:center;margin-top:8px;">提交后即可登录使用</p>
+    </form>
+  </div>
+</div>
+
+<div class="app-shell" id="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">🏪 <span id="shop-name-display">我的店铺</span></div>
+    <nav class="sidebar-nav">
+      <a href="#" data-panel="dashboard" class="active">📊 经营概览</a>
+      <a href="#" data-panel="products">📦 商品管理</a>
+      <a href="#" data-panel="orders">📋 订单管理</a>
+      <a href="#" data-panel="settings">⚙️ 店铺设置</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="margin-bottom:4px;" id="sidebar-shop-name">—</div>
+      <div style="color:rgba(255,255,255,.25);font-size:.7rem;">校园经济平台 v1.1</div>
+      <button class="btn btn-sm btn-ghost" style="margin-top:10px;width:100%;font-size:.72rem;" onclick="logout()">🚪 退出登录</button>
+    </div>
+  </aside>
+  <div class="main-area">
+    <div class="main-topbar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <div style="font-weight:600;font-size:.9rem;">👋 你好，<span id="seller-name-display">—</span></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:.75rem;color:#6b7280;" id="today-date">—</span>
+        <span style="background:#ecfdf5;color:#065f46;padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:700;">运营中</span>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="panel active" id="panel-dashboard">
+        <div class="stat-row" id="dashboard-stats"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="setting-card"><h3>🔥 最近订单</h3><div id="dash-recent-orders"></div></div>
+          <div class="setting-card"><h3>📈 本周趋势</h3><div id="dash-trend" style="color:#6b7280;font-size:.85rem;"></div></div>
+        </div>
+      </div>
+      <div class="panel" id="panel-products">
+        <div class="panel-header"><h2>📦 我的商品</h2><button class="btn btn-primary" onclick="showProductModal()">+ 发布新商品</button></div>
+        <div id="product-list"></div>
+      </div>
+      <div class="panel" id="panel-orders">
+        <div class="panel-header"><h2>📋 我的订单</h2>
+          <div style="display:flex;gap:8px;">
+            <select id="order-status-filter" style="padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;" onchange="renderMyOrders()">
+              <option value="">全部状态</option><option value="pending">待处理</option><option value="confirmed">已确认</option><option value="done">已完成</option>
+            </select>
+          </div>
+        </div>
+        <div id="order-list"></div>
+      </div>
+      <div class="panel" id="panel-settings">
+        <h2 style="margin-bottom:14px;">⚙️ 店铺设置</h2>
+        <div class="setting-card"><h3>📝 基本信息</h3><div id="settings-form"></div></div>
+        <div class="setting-card">
+          <h3>💳 店铺通用收款码</h3>
+          <p style="font-size:.85rem;color:#6b7280;margin-bottom:12px;">上传你的微信收款码。商品未设置独立收款码时将展示此码。</p>
+          <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+            <div style="text-align:center;">
+              <div class="shop-qr-preview" id="qr-preview-box"><span class="qr-empty">未设置</span></div>
+              <p style="font-size:.72rem;color:#6b7280;margin-top:4px;">当前收款码</p>
+            </div>
+            <div style="flex:1;min-width:200px;">
+              <input type="file" id="qr-file" accept="image/*" style="display:none" onchange="handleShopQRUpload(this)" />
+              <button class="btn btn-outline" onclick="document.getElementById('qr-file').click()">📁 上传收款码</button>
+              <p class="form-hint">支持 JPG / PNG，文件不超过 5MB</p>
+            </div>
+          </div>
+        </div>
+        <div class="setting-card" style="background:#fef2f2;border:1px solid #fecaca;">
+          <h3 style="color:#991b1b;">⚠️ 注销店铺</h3>
+          <p style="font-size:.82rem;color:#991b1b;margin-bottom:10px;">注销后所有商品将被下架，已有订单数据保留。不可撤销。</p>
+          <button class="btn btn-danger" onclick="closeShop()">申请注销店铺</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ====== 商品编辑弹窗 ====== -->
+<div class="modal-overlay" id="product-modal" style="display:none;">
+  <div class="modal">
+    <button class="modal-close-btn" onclick="closeProductModal()">✕</button>
+    <h2 id="product-modal-title">发布商品</h2>
+    <form id="product-form">
+      <div class="form-group"><label>商品图片（Emoji 或上传）</label>
+        <div class="upload-zone" id="product-img-zone" onclick="document.getElementById('product-img-input').click()">
+          <div id="product-img-placeholder">📷<br/><span style="font-size:.78rem;color:#9ca3af;">点击上传商品图片</span></div>
+          <img id="product-img-preview" style="display:none;" alt="预览" />
+        </div>
+        <input type="file" id="product-img-input" accept="image/*" style="display:none;" onchange="handleProductImage(this)" />
+        <p style="font-size:.72rem;color:#9ca3af;margin-top:4px;">也可直接输入 Emoji（如 📸），将在商品名称中展示</p>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>商品名称 *</label><input type="text" id="prod-name" placeholder="如：校园约拍服务" maxlength="50" /></div>
+        <div class="form-group"><label>分类 *</label><select id="prod-category"><option value="生活服务">生活服务</option><option value="技术服务">技术服务</option><option value="学习资料">学习资料</option><option value="兴趣培训">兴趣培训</option><option value="闲置交易">闲置交易</option><option value="餐饮美食">餐饮美食</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>价格 (元) *</label><input type="number" id="prod-price" step="0.01" min="0.01" max="99999" placeholder="0.00" /></div>
+        <div class="form-group"><label>单位</label><input type="text" id="prod-unit" placeholder="次 / 本 / 单 / 课时" value="次" maxlength="10" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>库存数量</label><input type="number" id="prod-stock" value="10" min="0" max="99999" /></div>
+        <div class="form-group"><label>上架状态</label><select id="prod-status"><option value="on">上架中</option><option value="off">暂下架</option></select></div>
+      </div>
+      <div class="form-group"><label>商品描述</label><textarea id="prod-desc" rows="3" placeholder="详细描述你的商品/服务..." maxlength="500"></textarea></div>
+      <div class="form-group"><label><input type="checkbox" id="prod-hot" /> 标记为热门 (HOT)</label></div>
+      <div class="form-group"><label>联系方式（学生下单时可见）</label><input type="text" id="prod-contact" placeholder="微信/QQ/手机号，留空使用店铺手机号" maxlength="50" /></div>
+      <div class="qr-section" id="prod-qr-section">
+        <p class="qr-section-title">💳 商品独立收款码 <span style="font-weight:400;font-size:.75rem;color:#9ca3af;">（选填）</span></p>
+        <p class="qr-section-desc">设置后买家购买此商品时优先展示此收款码。留空使用店铺通用收款码。</p>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <div class="qr-preview-box" id="prod-qr-preview"><span class="qr-empty">未设置</span></div>
+          <div>
+            <input type="file" id="prod-qr-input" accept="image/*" style="display:none;" onchange="handleProductQRInput(this)" />
+            <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('prod-qr-input').click()" id="btn-upload-prod-qr">📁 上传收款码</button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeProductQR()" id="btn-remove-prod-qr" style="display:none;">删除</button>
+            <p style="font-size:.7rem;color:#9ca3af;margin-top:4px;">留空则使用店铺通用收款码</p>
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="prod-id" />
+      <button type="submit" class="btn btn-primary btn-block" id="product-save-btn">发布商品</button>
+    </form>
+  </div>
+</div>
+
+<script>
+// ================================================================
+//  商家中心 — 调用真实后端 API
+// ================================================================
+var $ = function(id) { return document.getElementById(id); };
+
+// 当前登录商家信息
+var currentSeller = null;
+var API_BASE = window.location.origin;
+
+// ====== API 请求封装 ======
+function api(path, opts) {
+  opts = opts || {};
+  var headers = { 'Content-Type': 'application/json' };
+  if (opts.headers) { for (var k in opts.headers) headers[k] = opts.headers[k]; }
+  // 商家认证头
+  if (currentSeller && currentSeller.id) {
+    headers['x-seller-id'] = currentSeller.id;
+    headers['x-seller-pass'] = currentSeller.password;
+  }
+  return fetch(API_BASE + path, {
+    headers: headers,
+    method: opts.method || 'GET',
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  }).then(function(r) {
+    return r.json().then(function(d) {
+      if (!r.ok) throw new Error(d.error || '请求失败 (' + r.status + ')');
+      return d;
+    });
+  });
+}
+
+// ====== Toast ======
+function toast(msg, type) {
+  type = type || 'success';
+  var t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  clearTimeout(t._tid);
+  t._tid = setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+// ====== 工具 ======
+function escHtml(str) {
+  if (str == null) return '';
+  var div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+function escAttr(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function formatDate(ts) { return new Date(ts).toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'short'}); }
+function formatDateTime(ts) { return new Date(ts).toLocaleString('zh-CN'); }
+function isValidPhone(p) { return /^1[3-9]\d{9}$/.test(p); }
+
+// 压缩图片到 base64（商品图用，本地读取后直接存字符串）
+function compressImageToBase64(file, maxW, callback) {
+  if (!file.type.match(/image\//)) { callback(null); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      if (w <= maxW) { callback(e.target.result); return; }
+      var ratio = maxW / w;
+      var canvas = document.createElement('canvas');
+      canvas.width = maxW;
+      canvas.height = Math.round(h * ratio);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      callback(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ====== 登录/注册切换 ======
+document.querySelectorAll('.login-card .tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.login-card .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    $('login-form').style.display = btn.dataset.tab === 'login' ? 'block' : 'none';
+    $('register-form').style.display = btn.dataset.tab === 'register' ? 'block' : 'none';
+  });
+});
+
+// ====== 入驻 ======
+$('register-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var data = {
+    shopName: $('reg-shop-name').value.trim(),
+    realName: $('reg-name').value.trim(),
+    studentId: $('reg-student-id').value.trim(),
+    phone: $('reg-phone').value.trim(),
+    category: $('reg-category').value,
+    password: $('reg-pass').value,
+    description: $('reg-desc').value.trim()
+  };
+  if (!data.shopName || !data.realName || !data.studentId || !data.phone || !data.password) { toast('请填写所有必填项', 'error'); return; }
+  if (data.password.length < 6) { toast('密码至少6位', 'error'); return; }
+  if (!isValidPhone(data.phone)) { toast('请输入正确的11位手机号', 'error'); return; }
+
+  fetch(API_BASE + '/api/seller/register', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+  }).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error); return d; }); })
+    .then(function() {
+      toast('入驻成功！请登录');
+      document.querySelector('.login-card .tab-btn[data-tab="login"]').click();
+      ['reg-shop-name','reg-name','reg-student-id','reg-phone','reg-pass','reg-desc'].forEach(function(id) { $(id).value = ''; });
+    })
+    .catch(function(err) { toast(err.message, 'error'); });
+});
+
+// ====== 登录 ======
+$('login-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var login = $('login-id').value.trim();
+  var pass = $('login-pass').value.trim();
+  if (!login || !pass) { toast('请输入账号和密码', 'error'); return; }
+
+  fetch(API_BASE + '/api/seller/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: login, password: pass })
+  }).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error); return d; }); })
+    .then(function(d) {
+      currentSeller = d.seller;
+      currentSeller.password = pass; // 记住密码用于后续认证头
+      localStorage.setItem('seller_session', JSON.stringify({ id: d.seller.id, pass: pass }));
+      showMain();
+      toast('欢迎回来，' + d.seller.realName + '！');
+    })
+    .catch(function(err) { toast(err.message, 'error'); });
+});
+
+// 自动登录
+(function() {
+  var saved = localStorage.getItem('seller_session');
+  if (saved) {
+    try {
+      var s = JSON.parse(saved);
+      fetch(API_BASE + '/api/seller/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: s.id, password: s.pass })
+      }).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error); return d; }); })
+        .then(function(d) {
+          currentSeller = d.seller;
+          currentSeller.password = s.pass;
+          showMain();
+        })
+        .catch(function() { localStorage.removeItem('seller_session'); });
+    } catch(e) { localStorage.removeItem('seller_session'); }
+  }
+})();
+
+function showMain() {
+  $('login-page').style.display = 'none';
+  $('app-shell').classList.add('active');
+  $('shop-name-display').textContent = currentSeller.shopName;
+  $('seller-name-display').textContent = currentSeller.realName;
+  $('sidebar-shop-name').textContent = currentSeller.shopName;
+  $('today-date').textContent = formatDate(Date.now());
+  navigatePanel('dashboard');
+}
+
+function logout() {
+  localStorage.removeItem('seller_session');
+  currentSeller = null;
+  $('app-shell').classList.remove('active');
+  $('login-page').style.display = 'flex';
+  $('login-id').value = '';
+  $('login-pass').value = '';
+}
+
+// ====== 侧边栏导航 ======
+document.querySelectorAll('.sidebar-nav a').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    e.preventDefault();
+    navigatePanel(a.dataset.panel);
+    if (window.innerWidth <= 768) $('sidebar').classList.remove('open');
+  });
+});
+
+function navigatePanel(name) {
+  document.querySelectorAll('.sidebar-nav a').forEach(function(a) { a.classList.toggle('active', a.dataset.panel === name); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  var panel = $('panel-' + name); if (panel) panel.classList.add('active');
+  switch (name) {
+    case 'dashboard': loadDashboard(); break;
+    case 'products': renderMyProducts(); break;
+    case 'orders': renderMyOrders(); break;
+    case 'settings': renderSettings(); break;
+  }
+}
+function toggleSidebar() { $('sidebar').classList.toggle('open'); }
+
+// ====== 经营概览 ======
+function loadDashboard() {
+  Promise.all([
+    api('/api/seller/products'),
+    api('/api/seller/orders')
+  ]).then(function(r) {
+    var products = r[0], orders = r[1];
+    var onSale = products.filter(function(p) { return p.status === 'on'; }).length;
+    var totalRev = 0, confirmedRev = 0, pendingC = 0;
+    orders.forEach(function(o) {
+      totalRev += o.total;
+      if (o.status === 'done') confirmedRev += o.total;
+      if (o.status === 'pending') pendingC++;
+    });
+    $('dashboard-stats').innerHTML =
+      '<div class="stat-card"><div class="stat-icon blue">📦</div><div class="stat-info"><div class="stat-num">'+onSale+'</div><div class="stat-lbl">在售商品</div></div></div>' +
+      '<div class="stat-card"><div class="stat-icon orange">📋</div><div class="stat-info"><div class="stat-num">'+orders.length+'</div><div class="stat-lbl">总订单</div></div></div>' +
+      '<div class="stat-card"><div class="stat-icon red">⏳</div><div class="stat-info"><div class="stat-num">'+pendingC+'</div><div class="stat-lbl">待处理</div></div></div>' +
+      '<div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-info"><div class="stat-num">¥'+totalRev.toFixed(2)+'</div><div class="stat-lbl">总交易额（入账 ¥'+confirmedRev.toFixed(2)+'）</div></div></div>';
+
+    var labels = { pending:'待处理', confirmed:'已确认', done:'已完成' };
+    var recent = orders.slice().reverse().slice(0, 3);
+    var rHtml = '';
+    recent.forEach(function(o) {
+      rHtml += '<div style="padding:10px;border-bottom:1px solid #f3f4f6;font-size:.82rem;">' +
+        '<div style="display:flex;justify-content:space-between;"><span><strong>#'+o.id+'</strong> '+escHtml(o.buyer)+'</span>' +
+        '<span class="order-badge '+o.status+'">'+(labels[o.status]||o.status)+'</span></div>' +
+        '<div style="color:#6b7280;margin-top:2px;">¥'+o.total.toFixed(2)+' · '+(o.items||[]).map(function(i){return escHtml(i.name)+' ×'+i.quantity;}).join(', ')+'</div></div>';
+    });
+    if (!rHtml) rHtml = '<div class="empty" style="padding:30px;"><p>还没有订单</p></div>';
+    $('dash-recent-orders').innerHTML = rHtml;
+
+    var weekAgo = Date.now() - 7*86400000;
+    var weekOrders = orders.filter(function(o) { return new Date(o.createdAt).getTime() > weekAgo; });
+    var weekRev = weekOrders.reduce(function(s,o){return s+o.total;},0);
+    $('dash-trend').innerHTML =
+      '<div style="margin-bottom:8px;">📅 本周（近7天）</div>' +
+      '<div style="font-size:1.8rem;font-weight:800;color:#6366f1;">'+weekOrders.length+' <small style="font-size:.9rem;font-weight:400;color:#6b7280;">笔订单</small></div>' +
+      '<div style="font-size:1.2rem;font-weight:700;color:#10b981;">¥'+weekRev.toFixed(2)+'</div>';
+  }).catch(function(err) { toast(err.message, 'error'); });
+}
+
+// ====== 商品管理 ======
+function renderMyProducts() {
+  api('/api/seller/products').then(function(products) {
+    var html = '';
+    products.forEach(function(p) {
+      html +=
+        '<div class="item-card">' +
+          '<div class="item-img">' + (p.image && p.image.startsWith('data:')
+            ? '<img src="'+p.image+'" style="width:64px;height:64px;border-radius:10px;object-fit:cover;" alt=""/>'
+            : '<span style="font-size:2rem;">'+(p.image||'📦')+'</span>') + '</div>' +
+          '<div class="item-body">' +
+            '<div class="item-title">'+escHtml(p.name)+(p.hot?' <span class="tag tag-hot">HOT</span>':'')+(p.qrDataUrl?' <span class="tag tag-qr">💳独立收款码</span>':'')+'</div>' +
+            '<div class="item-sub">'+escHtml(p.category)+' · 库存 '+p.stock+' '+escHtml(p.unit)+' · '+formatDate(p.createdAt)+'</div>' +
+          '</div>' +
+          '<div class="item-price-tag">¥'+p.price.toFixed(2)+'</div>' +
+          '<span class="item-status '+p.status+'">'+(p.status==='on'?'上架中':'已下架')+'</span>' +
+          '<div class="item-actions">' +
+            '<button class="btn btn-sm btn-outline" onclick="showProductModal('+p.id+')">编辑</button>' +
+            '<button class="btn btn-sm btn-ghost" onclick="toggleProductStatus('+p.id+',\''+(p.status==='on'?'off':'on')+'\')">'+(p.status==='on'?'下架':'上架')+'</button>' +
+            '<button class="btn btn-sm btn-danger" onclick="deleteMyProduct('+p.id+')">删除</button>' +
+          '</div>' +
+        '</div>';
+    });
+    if (!html) html = '<div class="empty"><div class="empty-icon">📦</div><p>还没有发布商品</p><p style="font-size:.82rem;">点击右上角"发布新商品"开始吧</p></div>';
+    $('product-list').innerHTML = html;
+  }).catch(function(err) { toast(err.message, 'error'); });
+}
+
+function showProductModal(id) {
+  $('product-modal').style.display = 'flex';
+  resetProductQRForm();
+
+  if (id) {
+    api('/api/seller/products').then(function(products) {
+      var p = products.find(function(x) { return x.id === id; });
+      if (!p) return;
+      fillProductForm(p);
+    });
+  } else {
+    fillProductForm(null);
+  }
+}
+
+function fillProductForm(p) {
+  $('product-modal-title').textContent = p ? '编辑商品' : '发布新商品';
+  $('prod-id').value = p ? p.id : '';
+  $('prod-name').value = p ? p.name : '';
+  $('prod-category').value = p ? p.category : (currentSeller.category || '生活服务');
+  $('prod-price').value = p ? p.price : '';
+  $('prod-unit').value = p ? p.unit : '次';
+  $('prod-stock').value = p ? p.stock : 10;
+  $('prod-status').value = p ? p.status : 'on';
+  $('prod-desc').value = p ? p.description : '';
+  $('prod-contact').value = p ? (p.contact || '') : '';
+  $('prod-hot').checked = p ? p.hot : false;
+  $('product-save-btn').textContent = p ? '保存修改' : '发布商品';
+
+  var preview = $('product-img-preview');
+  var placeholder = $('product-img-placeholder');
+  var zone = $('product-img-zone');
+  if (p && p.image && p.image.startsWith('data:')) {
+    preview.src = p.image; preview.style.display = 'block'; placeholder.style.display = 'none';
+    zone.classList.add('has-img');
+  } else {
+    preview.style.display = 'none';
+    placeholder.innerHTML = '📷<br/><span style="font-size:.78rem;color:#9ca3af;">点击上传商品图片</span>';
+    zone.classList.remove('has-img');
+  }
+
+  if (p && p.qrDataUrl) {
+    $('prod-qr-preview').innerHTML = '<img src="'+p.qrDataUrl+'" alt="收款码" style="width:100%;height:100%;object-fit:contain;" />';
+    $('btn-remove-prod-qr').style.display = 'inline-block';
+    $('btn-upload-prod-qr').textContent = '更换收款码';
+  }
+}
+
+function closeProductModal() { $('product-modal').style.display = 'none'; }
+
+function handleProductImage(input) {
+  var file = input.files[0]; if (!file) return;
+  compressImageToBase64(file, 600, function(dataUrl) {
+    if (!dataUrl) { toast('图片读取失败', 'error'); return; }
+    var preview = $('product-img-preview'); var placeholder = $('product-img-placeholder'); var zone = $('product-img-zone');
+    preview.src = dataUrl; preview.style.display = 'block'; placeholder.style.display = 'none';
+    zone.classList.add('has-img');
+  });
+}
+
+// 商品独立收款码（存 base64，因后端目前接受 JSON body 中的 qrDataUrl）
+var _prodQRBase64 = null;
+function handleProductQRInput(input) {
+  var file = input.files[0]; if (!file) return;
+  if (file.size > 5*1024*1024) { toast('图片不能超过 5MB', 'error'); return; }
+  compressImageToBase64(file, 400, function(dataUrl) {
+    if (!dataUrl) { toast('图片读取失败', 'error'); return; }
+    _prodQRBase64 = dataUrl;
+    $('prod-qr-preview').innerHTML = '<img src="'+dataUrl+'" alt="收款码" style="width:100%;height:100%;object-fit:contain;" />';
+    $('btn-remove-prod-qr').style.display = 'inline-block';
+    $('btn-upload-prod-qr').textContent = '更换收款码';
+  });
+}
+function removeProductQR() {
+  if (!confirm('确定删除此商品的独立收款码吗？')) return;
+  _prodQRBase64 = '';
+  resetProductQRForm();
+}
+function resetProductQRForm() {
+  _prodQRBase64 = null;
+  $('prod-qr-preview').innerHTML = '<span class="qr-empty">未设置</span>';
+  $('btn-remove-prod-qr').style.display = 'none';
+  $('btn-upload-prod-qr').textContent = '📁 上传收款码';
+  $('prod-qr-input').value = '';
+}
+
+$('product-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var id = $('prod-id').value;
+  var price = parseFloat($('prod-price').value);
+  if (!$('prod-name').value.trim()) { toast('请填写商品名称', 'error'); return; }
+  if (isNaN(price) || price <= 0) { toast('请输入有效的价格', 'error'); return; }
+
+  var data = {
+    name: $('prod-name').value.trim(),
+    category: $('prod-category').value,
+    price: price,
+    unit: $('prod-unit').value.trim() || '次',
+    stock: parseInt($('prod-stock').value) || 0,
+    status: $('prod-status').value,
+    description: $('prod-desc').value.trim(),
+    contact: $('prod-contact').value.trim(),
+    hot: $('prod-hot').checked,
+    image: $('product-img-preview').src || '📦'
+  };
+  if (_prodQRBase64 !== null) data.qrDataUrl = _prodQRBase64;
+  // 编辑时不覆盖已有 qrDataUrl（如果没改动）
+  if (_prodQRBase64 === null && !id) data.qrDataUrl = '';
+
+  var method = id ? 'PUT' : 'POST';
+  var path = id ? '/api/seller/products/' + id : '/api/seller/products';
+
+  api(path, { method: method, body: data })
+    .then(function() {
+      closeProductModal();
+      toast(id ? '商品已更新' : '商品已发布！');
+      renderMyProducts();
+      loadDashboard();
+    })
+    .catch(function(err) { toast(err.message, 'error'); });
+});
+
+function toggleProductStatus(id, newStatus) {
+  api('/api/seller/products/' + id, { method: 'PUT', body: { status: newStatus } })
+    .then(function() { renderMyProducts(); loadDashboard(); toast(newStatus==='on'?'商品已上架':'商品已下架'); })
+    .catch(function(err) { toast(err.message, 'error'); });
+}
+
+function deleteMyProduct(id) {
+  if (!confirm('确定删除该商品吗？')) return;
+  api('/api/seller/products/' + id, { method: 'DELETE' })
+    .then(function() { renderMyProducts(); loadDashboard(); toast('商品已删除'); })
+    .catch(function(err) { toast(err.message, 'error'); });
+}
+
+// ====== 订单管理 ======
+function renderMyOrders() {
+  var filter = $('order-status-filter').value;
+  api('/api/seller/orders').then(function(orders) {
+    if (filter) orders = orders.filter(function(o) { return o.status === filter; });
+    var labels = { pending:'待处理', confirmed:'已确认', done:'已完成' };
+    var html = '';
+    orders.slice().reverse().forEach(function(o) {
+      html +=
+        '<div class="order-card">' +
+          '<div class="order-head"><strong>#'+o.id+'</strong><span class="order-badge '+o.status+'">'+(labels[o.status]||o.status)+'</span></div>' +
+          '<div class="order-items">'+(o.items||[]).map(function(i){return '📦 '+escHtml(i.name)+' ×'+i.quantity;}).join('<br>')+'</div>' +
+          '<div class="order-total" style="font-size:1.1rem;">¥'+o.total.toFixed(2)+'</div>' +
+          '<div class="order-buyer">👤 '+escHtml(o.buyer)+' · '+escHtml(o.contact)+' · '+formatDateTime(o.createdAt)+'</div>' +
+          (o.note ? '<div class="order-buyer">📝 '+escHtml(o.note)+'</div>' : '') +
+          (o.proofImage ? '<div style="margin-top:6px;"><a href="'+o.proofImage+'" target="_blank" rel="noopener" style="font-size:.78rem;color:#6366f1;">📸 查看付款截图</a></div>' : '') +
+          '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">' +
+            (o.status==='pending' ? '<button class="btn btn-sm btn-success" onclick="updateOrderStatus('+o.id+',\'confirmed\')">✅ 确认收款</button>' : '') +
+            (o.status!=='done' ? '<button class="btn btn-sm btn-primary" onclick="updateOrderStatus('+o.id+',\'done\')">✔️ 标记完成</button>' : '') +
+          '</div>' +
+        '</div>';
+    });
+    if (!html) html = '<div class="empty"><div class="empty-icon">📋</div><p>暂无订单</p></div>';
+    $('order-list').innerHTML = html;
+  }).catch(function(err) { toast(err.message, 'error'); });
+}
+
+function updateOrderStatus(id, status) {
+  api('/api/seller/orders/' + id, { method: 'PATCH', body: { status: status } })
+    .then(function() { renderMyOrders(); loadDashboard(); toast(status==='confirmed'?'已确认收款':'已标记完成'); })
+    .catch(function(err) { toast(err.message, 'error'); });
+}
+
+// ====== 店铺设置 ======
+function renderSettings() {
+  var s = currentSeller;
+  $('settings-form').innerHTML =
+    '<div class="form-row">' +
+      '<div class="form-group"><label>店铺名称</label><input type="text" id="set-shop-name" value="'+escAttr(s.shopName)+'" maxlength="30" /></div>' +
+      '<div class="form-group"><label>经营类目</label><select id="set-category">' +
+        ['生活服务','技术服务','学习资料','兴趣培训','闲置交易','餐饮美食'].map(function(c){return '<option value="'+c+'"'+(s.category===c?' selected':'')+'>'+c+'</option>';}).join('') +
+      '</select></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>真实姓名</label><input type="text" id="set-real-name" value="'+escAttr(s.realName)+'" maxlength="20" /></div>' +
+      '<div class="form-group"><label>手机号</label><input type="tel" id="set-phone" value="'+escAttr(s.phone)+'" maxlength="11" /></div>' +
+    '</div>' +
+    '<div class="form-group"><label>店铺简介</label><textarea id="set-desc" rows="2" maxlength="200">'+escHtml(s.description||'')+'</textarea></div>' +
+    '<div class="form-group"><label>修改密码（留空不修改）</label><input type="password" id="set-pass" placeholder="输入新密码，至少6位" /></div>' +
+    '<button class="btn btn-primary" onclick="saveSettings()">💾 保存设置</button>';
+  if (s.qrDataUrl) {
+    $('qr-preview-box').innerHTML = '<img src="'+s.qrDataUrl+'" alt="收款码" />';
+  } else {
+    $('qr-preview-box').innerHTML = '<span class="qr-empty">未设置</span>';
+  }
+}
+
+function saveSettings() {
+  var data = {};
+  var shopName = $('set-shop-name').value.trim();
+  var realName = $('set-real-name').value.trim();
+  var phone = $('set-phone').value.trim();
+  if (!shopName || !realName || !phone) { toast('请填写必填项', 'error'); return; }
+  if (!isValidPhone(phone)) { toast('请输入正确的11位手机号', 'error'); return; }
+  data.shopName = shopName;
+  data.realName = realName;
+  data.phone = phone;
+  data.description = $('set-desc').value.trim();
+  data.category = $('set-category').value;
+  var pass = $('set-pass').value;
+  if (pass) { if (pass.length<6) { toast('密码至少6位', 'error'); return; } data.password = pass; }
+
+  api('/api/seller/me', { method: 'PUT', body: data })
+    .then(function(d) {
+      currentSeller = d.seller;
+      currentSeller.password = currentSeller.password; // 保留密码
+      localStorage.setItem('seller_session', JSON.stringify({ id: d.seller.id, pass: currentSeller.password }));
+      $('shop-name-display').textContent = d.seller.shopName;
+      $('seller-name-display').textContent = d.seller.realName;
+      $('sidebar-shop-name').textContent = d.seller.shopName;
+      $('set-pass').value = '';
+      toast('设置已保存！');
+    })
+    .catch(function(err) { toast(err.message, 'error'); });
+}
+
+function handleShopQRUpload(input) {
+  var file = input.files[0]; if (!file) return;
+  if (file.size > 5*1024*1024) { toast('图片不能超过 5MB', 'error'); return; }
+  var formData = new FormData();
+  formData.append('qrfile', file);
+  // 用 XMLHttpRequest 以支持 FormData + 认证头
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', API_BASE + '/api/seller/me/qrcode');
+  xhr.setRequestHeader('x-seller-id', currentSeller.id);
+  xhr.setRequestHeader('x-seller-pass', currentSeller.password);
+  xhr.onload = function() {
+    try {
+      var d = JSON.parse(xhr.responseText);
+      if (xhr.status === 200 && d.ok) {
+        currentSeller.qrDataUrl = d.qrDataUrl;
+        $('qr-preview-box').innerHTML = '<img src="'+d.qrDataUrl+'" alt="收款码" />';
+        toast('收款码已上传！');
+      } else { toast(d.error || '上传失败', 'error'); }
+    } catch(e) { toast('上传失败', 'error'); }
+  };
+  xhr.onerror = function() { toast('网络错误', 'error'); };
+  xhr.send(formData);
+}
+
+function closeShop() {
+  if (!confirm('确定注销店铺吗？所有商品将被下架。')) return;
+  if (!confirm('再次确认：注销后无法恢复。')) return;
+  api('/api/seller/close', { method: 'POST' })
+    .then(function() { toast('店铺已注销'); logout(); })
+    .catch(function(err) { toast(err.message, 'error'); });
+}
+
+// ====== 全局事件 ======
+$('product-modal').addEventListener('click', function(e) { if (e.target === this) closeProductModal(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && $('product-modal').style.display === 'flex') closeProductModal(); });
+</script>
+</body>
+</html>
