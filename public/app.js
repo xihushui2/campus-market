@@ -82,7 +82,7 @@ function navigate(page) {
 
 // ========== 首页 ==========
 function renderHome(root) {
-  var shareURL = serverInfo.publicURL || serverInfo.lanURL || ('http://' + serverInfo.lanIP + ':' + serverInfo.port);
+  var shareURL = 'https://optimistic-curiosity-production-5452.up.railway.app';
   root.innerHTML =
     '<div class="hero">' +
       '<h1>校园经济平台</h1>' +
