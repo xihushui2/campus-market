@@ -1,72 +1,95 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const QRCode = require('qrcode');
 const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const PUBLIC_URL = process.env.PUBLIC_URL || 'https://campus-market.serveousercontent.com';
 
-// ⚠️ Railway 部署后把 PUBLIC_URL 改成你的实际域名
-const PUBLIC_URL = process.env.PUBLIC_URL || ('http://localhost:' + PORT);
-
-// 管理密码（可在 Railway 环境变量中设置 ADMIN_PASS）
+// 管理密码（可通过环境变量 ADMIN_PASS 覆盖）
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin888';
+
+// ========== 自动获取本机局域网 IP ==========
+function getLanIP() {
+  const nets = os.networkInterfaces();
+  const priorityNames = ['WLAN', 'Wi-Fi', '无线网络', '以太网', 'Ethernet'];
+  const candidates = [];
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        candidates.push({ address: net.address, ifName: name });
+      }
+    }
+  }
+  for (const pn of priorityNames) {
+    const hit = candidates.find(c => c.ifName.toLowerCase().includes(pn.toLowerCase()));
+    if (hit) return hit.address;
+  }
+  const noVPN = candidates.filter(c =>
+    !c.ifName.toLowerCase().includes('vpn') && !c.ifName.toLowerCase().includes('vethernet')
+  );
+  if (noVPN.length) return noVPN[0].address;
+  return candidates[0]?.address || '127.0.0.1';
+}
+
+const LAN_IP = getLanIP();
+const LAN_URL = `http://${LAN_IP}:${PORT}`;
 
 // ========== Middleware ==========
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ========== 管理权限验证 ==========
+// ========== 管理权限验证中间件 ==========
 function adminAuth(req, res, next) {
   const pass = req.headers['x-admin-pass'] || req.query.pass || '';
   if (pass === ADMIN_PASS) return next();
-  res.status(401).json({ error: '管理密码错误' });
+  res.status(401).json({ error: '管理密码错误，请在管理页面右上角设置密码' });
 }
 
-// ========== 文件上传 (multer) ==========
+// ========== 文件上传配置 (multer) ==========
 const storage = multer.diskStorage({
   destination: path.join(__dirname, 'public'),
   filename: function(req, file, cb) {
+    // 固定保存为 payment-qr，保留原始扩展名
     var ext = path.extname(file.originalname) || '.png';
     cb(null, 'payment-qr' + ext);
   }
 });
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: function(req, file, cb) {
     var allowed = /\.(png|jpg|jpeg|gif|bmp|svg|webp)$/i;
     if (allowed.test(path.extname(file.originalname))) {
       cb(null, true);
     } else {
-      cb(new Error('仅支持图片格式'));
+      cb(new Error('仅支持图片格式：png/jpg/jpeg/gif/bmp/svg/webp'));
     }
   }
 });
 
-// ========== 数据路径 ==========
+// ========== 数据文件路径 ==========
 const DATA_DIR = path.join(__dirname, 'data');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+const PAYMENT_QR_FILE = path.join(__dirname, 'public', 'payment-qr.png');
 const PROOFS_DIR = path.join(DATA_DIR, 'payment-proofs');
 
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(PROOFS_DIR)) fs.mkdirSync(PROOFS_DIR, { recursive: true });
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+if (!fs.existsSync(PROOFS_DIR)) fs.mkdirSync(PROOFS_DIR);
 
-// ========== 数据读写（带锁防并发损坏） ==========
-var writeLocks = {};
+// ========== 数据读写 ==========
 function readJSON(filePath) {
   try { return JSON.parse(fs.readFileSync(filePath, 'utf-8')); } catch { return null; }
 }
 function writeJSON(filePath, data) {
-  // 先写临时文件再原子替换，防止写一半崩溃
-  var tmpFile = filePath + '.tmp.' + Date.now();
-  fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
-  fs.renameSync(tmpFile, filePath);
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-// ========== 初始化商品 ==========
+// ========== 初始化示例商品 ==========
 function initData() {
   if (!readJSON(PRODUCTS_FILE)) {
     const defaultProducts = [
@@ -86,41 +109,21 @@ function initData() {
   if (!readJSON(ORDERS_FILE)) { writeJSON(ORDERS_FILE, []); }
 }
 
-// ========== 收款码查找 ==========
-function findPaymentQR() {
-  var exts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg', '.webp'];
-  for (var i = 0; i < exts.length; i++) {
-    var p = path.join(__dirname, 'public', 'payment-qr' + exts[i]);
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-}
-
-// ========== API ==========
-
-// 状态
+// ========== 公开 API ==========
 app.get('/api/status', (req, res) => {
   const products = readJSON(PRODUCTS_FILE) || [];
   const orders = readJSON(ORDERS_FILE) || [];
-  res.json({
-    ok: true,
-    publicURL: PUBLIC_URL,
-    port: PORT,
-    productCount: products.length,
-    orderCount: orders.length
-  });
+  res.json({ ok: true, lanIP: LAN_IP, lanURL: LAN_URL, publicURL: PUBLIC_URL, port: PORT, productCount: products.length, orderCount: orders.length });
 });
 
-// 二维码
 app.get('/api/qrcode', async (req, res) => {
-  const targetURL = req.query.url || PUBLIC_URL;
+  const targetURL = req.query.url || PUBLIC_URL || LAN_URL;
   try {
     const qrDataURL = await QRCode.toDataURL(targetURL, { width: 400, margin: 2, color: { dark: '#1a1a2e', light: '#ffffff' } });
     res.json({ ok: true, url: targetURL, qr: qrDataURL });
   } catch (e) { res.status(500).json({ error: 'QR 生成失败' }); }
 });
 
-// 商品列表
 app.get('/api/products', (req, res) => {
   const products = readJSON(PRODUCTS_FILE) || [];
   const { category, search, sort } = req.query;
@@ -136,7 +139,6 @@ app.get('/api/products', (req, res) => {
   res.json(result);
 });
 
-// 商品详情
 app.get('/api/products/:id', (req, res) => {
   const products = readJSON(PRODUCTS_FILE) || [];
   const product = products.find(p => p.id === parseInt(req.params.id));
@@ -144,7 +146,6 @@ app.get('/api/products/:id', (req, res) => {
   res.json(product);
 });
 
-// 下单
 app.post('/api/orders', (req, res) => {
   const { items, buyer, contact, note } = req.body;
   if (!items || !items.length) return res.status(400).json({ error: '购物车不能为空' });
@@ -161,24 +162,20 @@ app.post('/api/orders', (req, res) => {
     total += product.price * qty;
     product.stock = Math.max(0, product.stock - qty);
   }
-  const order = {
-    id: Date.now(), items: orderItems, buyer, contact, note: note || '',
-    total: Math.round(total * 100) / 100, status: 'pending',
-    proofImage: req.body.proofImage || null, createdAt: new Date().toISOString()
-  };
+  const order = { id: Date.now(), items: orderItems, buyer, contact, note: note || '', total: Math.round(total * 100) / 100, status: 'pending', proofImage: req.body.proofImage || null, createdAt: new Date().toISOString() };
   orders.push(order);
   writeJSON(ORDERS_FILE, orders);
   writeJSON(PRODUCTS_FILE, products);
   res.json({ success: true, order });
 });
 
-// 订单列表
 app.get('/api/orders', (req, res) => {
   const orders = readJSON(ORDERS_FILE) || [];
   res.json(orders);
 });
 
-// 收款码图片
+// ========== API：收款码 ==========
+// 获取收款码图片
 app.get('/api/payment-qr', (req, res) => {
   var qrFile = findPaymentQR();
   if (qrFile) {
@@ -187,49 +184,84 @@ app.get('/api/payment-qr', (req, res) => {
     res.setHeader('Content-Type', mimeMap[ext] || 'image/png');
     return res.sendFile(qrFile);
   }
+  // 没有收款码时返回提示图
   res.setHeader('Content-Type', 'image/svg+xml');
-  res.send('<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280"><rect width="280" height="280" fill="#f9fafb" rx="12" stroke="#e5e7eb" stroke-width="2"/><text x="140" y="130" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#9ca3af">尚未上传收款码</text><text x="140" y="155" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#d1d5db">在管理后台→收款码设置中上传</text></svg>');
+  res.send('<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280"><rect width="280" height="280" fill="#f9fafb" rx="12" stroke="#e5e7eb" stroke-width="2"/><text x="140" y="130" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#9ca3af">尚未上传收款码</text><text x="140" y="155" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#d1d5db">在管理后台 → 收款码设置中上传</text></svg>');
 });
 
-// 收款码状态
+// 查找收款码文件（支持多种扩展名）
+function findPaymentQR() {
+  var exts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg', '.webp'];
+  for (var i = 0; i < exts.length; i++) {
+    var p = path.join(__dirname, 'public', 'payment-qr' + exts[i]);
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+// 收款码是否已设
 app.get('/api/payment-status', (req, res) => {
   res.json({ ready: !!findPaymentQR(), file: findPaymentQR() ? path.basename(findPaymentQR()) : null });
 });
 
-// 上传收款码
-app.post('/api/admin/payment-qr', adminAuth, upload.single('qrfile'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: '请选择收款码图片' });
+// ========== 收款码上传 (Base64) ==========
+app.post('/api/admin/payment-qr', adminAuth, (req, res) => {
+  var data = req.body.qrdata || '';
+  if (!data) return res.status(400).json({ error: '没有数据，请在管理后台上传收款码图片' });
+
+  // 支持 data:image/...;base64,xxx 格式
+  var matches = data.match(/^data:image\/(png|jpg|jpeg|gif|webp|svg\+xml|bmp);base64,(.+)$/i);
+  if (!matches) return res.status(400).json({ error: '图片格式不支持，请用管理后台上传' });
+
+  var ext = matches[1].toLowerCase();
+  if (ext === 'jpeg') ext = 'jpg';
+  if (ext === 'svg+xml') ext = 'svg';
+  var base64Data = matches[2];
+  var buf = Buffer.from(base64Data, 'base64');
+
+  // 删除旧收款码
   var exts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg', '.webp'];
-  exts.forEach(function(ext) {
-    var oldFile = path.join(__dirname, 'public', 'payment-qr' + ext);
-    if (fs.existsSync(oldFile) && oldFile !== req.file.path) {
-      try { fs.unlinkSync(oldFile); } catch(e) {}
-    }
+  exts.forEach(function(e) {
+    var oldFile = path.join(__dirname, 'public', 'payment-qr' + e);
+    if (fs.existsSync(oldFile)) { try { fs.unlinkSync(oldFile); } catch(err) {} }
   });
-  res.json({ ok: true, message: '收款码已上传', fileName: req.file.filename });
+
+  var fileName = 'payment-qr.' + ext;
+  var filePath = path.join(__dirname, 'public', fileName);
+  fs.writeFileSync(filePath, buf);
+  res.json({ ok: true, message: '收款码已上传', fileName: fileName });
 });
 
-// 删除收款码
+// ===== 删除收款码（管理权限） =====
 app.delete('/api/admin/payment-qr', adminAuth, (req, res) => {
   var qrFile = findPaymentQR();
-  if (qrFile) { try { fs.unlinkSync(qrFile); } catch(e) {} }
+  if (qrFile) {
+    try { fs.unlinkSync(qrFile); } catch(e) {}
+  }
   res.json({ ok: true, message: '收款码已删除' });
 });
 
-// 上传付款截图
+// ===== 付款截图上传（学生提交订单时或订单后补充） =====
 app.post('/api/payment-proof/:orderId', upload.single('proof'), (req, res) => {
   var orders = readJSON(ORDERS_FILE) || [];
-  var order = orders.find(function(o) { return o.id === parseInt(req.params.orderId); });
+  var orderId = parseInt(req.params.orderId);
+  var order = orders.find(function(o) { return o.id === orderId; });
   if (!order) return res.status(404).json({ error: '订单不存在' });
+
   if (!req.file) return res.status(400).json({ error: '请选择付款截图' });
+
+  // 保存截图到 proofs 目录
   var ext = path.extname(req.file.originalname) || '.png';
-  var proofFileName = 'proof-' + order.id + '-' + Date.now() + ext;
+  var proofFileName = 'proof-' + orderId + '-' + Date.now() + ext;
   var proofPath = path.join(PROOFS_DIR, proofFileName);
   fs.renameSync(req.file.path, proofPath);
+
+  // 更新订单
   order.proofImage = '/api/proof/' + proofFileName;
   order.proofUploadedAt = new Date().toISOString();
   writeJSON(ORDERS_FILE, orders);
-  res.json({ ok: true, message: '付款截图已上传', order: order });
+
+  res.json({ ok: true, message: '付款截图已上传，卖家将核对后确认', order: order });
 });
 
 // 获取付款截图
@@ -246,7 +278,7 @@ app.get('/api/proof/:fileName', (req, res) => {
 //  管理 API (需要密码)
 // ============================================================
 
-// 登录
+// 验证密码
 app.post('/api/admin/login', (req, res) => {
   if (req.body.pass === ADMIN_PASS) {
     res.json({ ok: true, token: ADMIN_PASS });
@@ -319,13 +351,13 @@ app.delete('/api/admin/orders/:id', adminAuth, (req, res) => {
   res.json({ ok: true, deleted: exists });
 });
 
-// 清空订单
+// 清空所有订单
 app.delete('/api/admin/orders', adminAuth, (req, res) => {
   writeJSON(ORDERS_FILE, []);
   res.json({ ok: true });
 });
 
-// 重置数据
+// 重置所有数据
 app.post('/api/admin/reset', adminAuth, (req, res) => {
   try { fs.unlinkSync(PRODUCTS_FILE); } catch {}
   try { fs.unlinkSync(ORDERS_FILE); } catch {}
@@ -333,12 +365,12 @@ app.post('/api/admin/reset', adminAuth, (req, res) => {
   res.json({ ok: true, message: '数据已重置' });
 });
 
-// 管理后台
+// ========== 管理后台独立页面 ==========
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// SPA fallback
+// ========== SPA fallback ==========
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -347,5 +379,21 @@ app.use((req, res) => {
 initData();
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('🎓 校园经济平台已启动 端口: ' + PORT + ' 管理密码: ' + ADMIN_PASS);
+  const bar = '═'.repeat(56);
+  const adminUrl = PUBLIC_URL ? `${PUBLIC_URL}/admin` : `${LAN_URL}/admin`;
+  console.log(`\n${bar}`);
+  console.log(`  🎓  校园经济平台 已启动！`);
+  console.log(``);
+  console.log(`  📍 用户端：    ${LAN_URL}`);
+  if (PUBLIC_URL) console.log(`  🌐 公网用户端：${PUBLIC_URL}`);
+  console.log(``);
+  console.log(`  ⚙️  管理后台：  ${adminUrl}`);
+  console.log(`  🔑 管理密码：  ${ADMIN_PASS}`);
+  console.log(``);
+  console.log(`  💡 在管理后台中你可以：`);
+  console.log(`     - 添加/编辑/删除商品`);
+  console.log(`     - 管理所有订单（确认/完成/删除）`);
+  console.log(`     - 查看数据统计`);
+  console.log(`     - 重置全部数据`);
+  console.log(`${bar}\n`);
 });

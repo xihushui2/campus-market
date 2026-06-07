@@ -521,38 +521,32 @@ function uploadPaymentQR() {
   progress.style.display = 'block';
   progress.textContent = '正在上传...';
 
-  // 用 XMLHttpRequest 上传（fetch 不支持进度）
-  var formData = new FormData();
-  formData.append('qrfile', file);
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', apiBase + '/api/admin/payment-qr');
-  xhr.setRequestHeader('x-admin-pass', PASS);
-
-  xhr.onload = function() {
-    progress.style.display = 'none';
-    try {
-      var data = JSON.parse(xhr.responseText);
-      if (xhr.status === 200 && data.ok) {
+  // 用 FileReader 转 Base64 → 通过 JSON 发送
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64 = e.target.result;
+    api('/api/admin/payment-qr', { method: 'POST', body: { qrdata: base64 } })
+      .then(function(data) {
+        progress.style.display = 'none';
         showToast('收款码已上传！学生端支付时将展示你的个人收款码');
         document.getElementById('qr-file-input').value = '';
         refreshPaymentStatus();
-        // 更新预览
         document.getElementById('payment-qr-preview').src = '/api/payment-qr?t=' + Date.now();
-      } else {
-        showToast(data.error || '上传失败', 'error');
-      }
-    } catch(e) {
-      showToast('上传失败，请重试', 'error');
-    }
+      })
+      .catch(function(e) {
+        progress.style.display = 'none';
+        showToast('上传失败：' + (e.message || '未知错误'), 'error');
+      });
   };
-  xhr.onerror = function() {
+  reader.onerror = function() {
+    progress.style.display = 'none';
+    showToast('读取文件失败，请重试', 'error');
+  };
+  reader.readAsDataURL(file);
+}
     progress.style.display = 'none';
     showToast('网络错误，请确认服务器已启动', 'error');
   };
-  xhr.send(formData);
-}
-
 function deletePaymentQR() {
   if (!confirm('确定要删除当前收款码吗？删除后学生端将显示默认提示图。')) return;
   api('/api/admin/payment-qr', { method: 'DELETE' })
