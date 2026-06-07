@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>校园经济平台</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ========== 顶部导航 ========== -->
+<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="#" data-page="home">🎓 Campus Market</a>
+    <nav class="topbar-nav" id="topbar-nav">
+      <button class="nav-btn active" data-page="home">🏪 商品</button>
+      <button class="nav-btn" data-page="cart" id="cart-nav-btn">
+        🛒 购物车 <span class="badge" id="cart-badge">0</span>
+      </button>
+      <button class="nav-btn" data-page="orders">📋 我的订单</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ========== 页面容器 ========== -->
+<main id="app-root"></main>
+
+<!-- ========== Toast ========== -->
+<div class="toast" id="toast"></div>
+
+<!-- ========== 页脚 ========== -->
+<footer class="footer">
+  <p>校园经济平台 · 连接校园需求与创意服务</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

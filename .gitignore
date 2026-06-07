@@ -1,0 +1,14 @@
+node_modules/
+
+# 本地历史数据不要上传
+data/orders.json
+data/products.json
+data/payment-proofs/
+
+# 临时文件
+*.tmp.*
+*.log
+logs/
+
+# OneDrive
+Desktop.ini

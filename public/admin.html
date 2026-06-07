@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>⚙️ 校园经济平台 - 管理后台</title>
+  <style>
+    :root {
+      --accent: #6366f1; --accent-light: #818cf8; --accent-bg: #eef2ff;
+      --bg: #f5f5f5; --surface: #ffffff; --border: #e5e7eb;
+      --text: #1a1a2e; --text-dim: #6b7280;
+      --red: #ef4444; --red-bg: #fef2f2;
+      --green: #10b981; --green-bg: #ecfdf5;
+      --orange: #f59e0b; --orange-bg: #fffbeb;
+      --radius: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+
+    /* 顶部栏 */
+    .topbar {
+      background: #1a1a2e; color: #fff; position: sticky; top: 0; z-index: 100;
+      padding: 0 20px; height: 56px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar h1 { font-size: 1.15rem; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .topbar-right input {
+      padding: 6px 12px; border-radius: 6px; border: none; font-size: .82rem;
+      width: 140px; text-align: center; font-family: inherit;
+    }
+    .topbar-right .status { font-size: .75rem; opacity: .7; }
+    .topbar-right .status.ok { color: #10b981; }
+    .topbar-right .status.err { color: #f87171; }
+
+    /* 主内容 */
+    #app-root { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+    /* 统计卡片 */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--surface); border-radius: var(--radius); padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.06); text-align: center; }
+    .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: .8rem; color: var(--text-dim); margin-top: 2px; }
+
+    /* Tab 切换 */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+    .tab-btn { padding: 10px 20px; border: none; background: var(--surface); border-radius: 8px; cursor: pointer; font-size: .9rem; font-weight: 600; color: var(--text-dim); transition: all .15s; font-family: inherit; }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+    .tab-btn:hover:not(.active) { background: var(--accent-bg); color: var(--accent); }
+
+    /* 面板 */
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .section-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+
+    /* 按钮 */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+      border: none; border-radius: 8px; cursor: pointer; font-size: .85rem; font-weight: 600;
+      transition: all .15s; font-family: inherit; white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-danger { background: var(--red-bg); color: var(--red); }
+    .btn-danger:hover { background: #fee2e2; }
+    .btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
+    .btn-sm { padding: 5px 10px; font-size: .78rem; border-radius: 6px; }
+    .btn-block { width: 100%; justify-content: center; }
+
+    /* 表格 / 列表 */
+    .item-row {
+      background: var(--surface); border-radius: var(--radius); padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .item-icon { font-size: 2rem; flex-shrink: 0; width: 50px; text-align: center; }
+    .item-info { flex: 1; min-width: 180px; }
+    .item-name { font-weight: 700; font-size: .95rem; }
+    .item-meta { font-size: .78rem; color: var(--text-dim); }
+    .item-price { font-weight: 800; color: var(--accent); min-width: 70px; text-align: right; }
+    .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* 编辑弹窗 */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200;
+      display: flex; align-items: center; justify-content: center; animation: fadeIn .2s;
+    }
+    @keyframes fadeIn { from { opacity: 0; } }
+    .modal {
+      background: var(--surface); border-radius: 20px; padding: 32px; max-width: 560px;
+      width: 92%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.15);
+      animation: slideUp .25s;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } }
+    .modal h2 { margin-bottom: 16px; font-size: 1.2rem; }
+
+    /* 表单 */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: .85rem; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 9px 12px; border: 2px solid var(--border); border-radius: 8px;
+      font-size: .88rem; font-family: inherit; outline: none; transition: border .2s;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* 订单卡片 */
+    .order-card {
+      background: var(--surface); border-radius: var(--radius); padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 10px;
+    }
+    .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+    .order-status {
+      padding: 3px 10px; border-radius: 99px; font-size: .75rem; font-weight: 700;
+    }
+    .order-status.pending { background: var(--orange-bg); color: #b45309; }
+    .order-status.confirmed { background: var(--accent-bg); color: var(--accent); }
+    .order-status.done { background: var(--green-bg); color: #065f46; }
+    .order-items { font-size: .85rem; color: var(--text-dim); margin-bottom: 6px; }
+    .order-total { font-weight: 700; color: var(--accent); }
+
+    /* Toast */
+    .toast {
+      position: fixed; top: 72px; left: 50%; transform: translate(-50%, -120%);
+      padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: .85rem;
+      z-index: 999; transition: transform .3s; box-shadow: 0 8px 40px rgba(0,0,0,.1);
+      text-align: center; max-width: 90vw; pointer-events: none;
+    }
+    .toast.show { transform: translate(-50%, 0); }
+    .toast.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .toast.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    @media (max-width: 640px) {
+      .topbar { padding: 0 10px; height: 48px; }
+      .topbar h1 { font-size: 1rem; }
+      .topbar-right input { width: 100px; font-size: .75rem; }
+      .item-row { flex-direction: column; align-items: flex-start; }
+      .item-price { text-align: left; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="topbar">
+  <h1>⚙️ 管理后台</h1>
+  <div class="topbar-right">
+    <span class="status" id="auth-status">未连接</span>
+    <input type="password" id="pass-input" placeholder="管理密码" />
+    <button class="btn btn-sm btn-primary" onclick="setPass()">连接</button>
+  </div>
+</div>
+
+<!-- 内容 -->
+<div id="app-root">
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="products">📦 商品管理</button>
+    <button class="tab-btn" data-tab="orders">📋 订单管理</button>
+    <button class="tab-btn" data-tab="payment">💳 收款码</button>
+    <button class="tab-btn" data-tab="danger">⚠️ 重置数据</button>
+  </div>
+
+  <!-- 商品管理 -->
+  <div class="panel active" id="panel-products">
+    <div class="section-title">
+      <span>商品列表</span>
+      <button class="btn btn-primary" onclick="showProductEdit()">+ 添加商品</button>
+    </div>
+    <div id="product-list">加载中...</div>
+  </div>
+
+  <!-- 订单管理 -->
+  <div class="panel" id="panel-orders">
+    <div class="section-title">
+      <span>所有订单</span>
+      <button class="btn btn-danger btn-sm" onclick="deleteAllOrders()">清空全部订单</button>
+    </div>
+    <div id="order-list">加载中...</div>
+  </div>
+
+  <!-- 收款码设置 -->
+  <div class="panel" id="panel-payment">
+    <div class="section-title">
+      <span>💳 微信收款码设置</span>
+    </div>
+    <div style="background:var(--surface);border-radius:var(--radius);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;">
+        <!-- 当前收款码预览 -->
+        <div style="text-align:center;min-width:160px;">
+          <p style="font-weight:600;margin-bottom:8px;font-size:.85rem;">当前收款码</p>
+          <div style="width:180px;height:180px;border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:0 auto;">
+            <img id="payment-qr-preview" src="/api/payment-qr" style="width:100%;height:100%;object-fit:contain;" alt="收款码" />
+          </div>
+          <p style="font-size:.72rem;color:var(--text-dim);margin-top:6px;" id="payment-status-text">加载中...</p>
+          <button class="btn btn-sm btn-danger" id="btn-delete-qr" style="margin-top:8px;display:none;" onclick="deletePaymentQR()">删除收款码</button>
+        </div>
+        <!-- 上传区 -->
+        <div style="flex:1;min-width:240px;">
+          <p style="font-weight:600;margin-bottom:8px;font-size:.85rem;">上传你的微信收款码</p>
+          <p style="font-size:.78rem;color:var(--text-dim);margin-bottom:10px;">
+            📱 打开微信 → 我 → 服务 → 收付款 → 二维码收款 → 保存图片<br/>
+            然后将保存的收款码图片上传到这里
+          </p>
+          <div style="border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;background:#f9fafb;margin-bottom:10px;" id="upload-zone">
+            <input type="file" id="qr-file-input" accept="image/*" style="display:none;" onchange="uploadPaymentQR()" />
+            <button class="btn btn-primary" onclick="document.getElementById('qr-file-input').click()">📁 选择收款码图片</button>
+            <p style="font-size:.72rem;color:var(--text-dim);margin-top:6px;">支持 PNG / JPG / GIF / SVG / WebP，最大 10MB</p>
+          </div>
+          <div id="upload-progress" style="display:none;text-align:center;color:var(--accent);font-size:.8rem;">正在上传...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 重置数据 -->
+  <div class="panel" id="panel-danger">
+    <div class="section-title">⚠️ 重置全部数据</div>
+    <div style="background:var(--red-bg);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
+      <p style="color:#991b1b;"><strong>警告：</strong>此操作将删除所有商品和订单，并恢复到初始示例数据。此操作不可撤销！</p>
+    </div>
+    <button class="btn btn-danger btn-block" onclick="resetAll()">⚠️ 确认重置所有数据</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var PASS = '';   // 仅在内存中保存，浏览器关闭后需重新输入
+var apiBase = window.location.origin;
+
+function api(path, opts) {
+  opts = opts || {};
+  var headers = {'Content-Type': 'application/json'};
+  if (opts.headers) {
+    for (var k in opts.headers) { headers[k] = opts.headers[k]; }
+  }
+  if (PASS) headers['x-admin-pass'] = PASS;
+  return fetch(apiBase + path, {
+    headers: headers,
+    method: opts.method || 'GET',
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  })
+    .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || d.message || 'Error'); return d; }); });
+}
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + (type || 'success') + ' show';
+  clearTimeout(t._tid); t._tid = setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  var div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
+function escapeAttr(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
+}
+
+function setPass() {
+  var p = document.getElementById('pass-input').value.trim();
+  if (!p) return;
+  PASS = p;
+  // 验证
+  api('/api/admin/login', { method: 'POST', body: { pass: p } })
+    .then(function() {
+      document.getElementById('auth-status').textContent = '已连接';
+      document.getElementById('auth-status').className = 'status ok';
+      showToast('管理权限已连接');
+      loadAll();
+    })
+    .catch(function() {
+      PASS = '';
+      document.getElementById('auth-status').textContent = '密码错误';
+      document.getElementById('auth-status').className = 'status err';
+      showToast('密码错误', 'error');
+    });
+}
+
+// 页面加载后不自动尝试连接，需手动输入密码
+
+// Tab 切换
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'products') loadProducts();
+    if (btn.dataset.tab === 'orders') loadOrders();
+    if (btn.dataset.tab === 'payment') loadPaymentPanel();
+  });
+});
+
+// ========== 加载 ==========
+function loadAll() {
+  loadStats();
+  loadProducts();
+}
+
+function loadStats() {
+  Promise.all([
+    api('/api/products'),
+    api('/api/orders')
+  ]).then(function(r) {
+    var products = r[0], orders = r[1];
+    var pending = orders.filter(function(o) { return o.status === 'pending'; }).length;
+    var revenue = orders.reduce(function(s, o) { return s + o.total; }, 0);
+    document.getElementById('stats').innerHTML =
+      '<div class="stat-card"><div class="stat-value">'+products.length+'</div><div class="stat-label">在售商品</div></div>' +
+      '<div class="stat-card"><div class="stat-value">'+orders.length+'</div><div class="stat-label">总订单</div></div>' +
+      '<div class="stat-card"><div class="stat-value">'+pending+'</div><div class="stat-label">待处理</div></div>' +
+      '<div class="stat-card"><div class="stat-value">¥'+revenue.toFixed(2)+'</div><div class="stat-label">总交易额</div></div>';
+  }).catch(function() {});
+}
+
+// ========== 商品管理 ==========
+function loadProducts() {
+  api('/api/products').then(function(products) {
+    var html = '';
+    products.forEach(function(p) {
+      html += '' +
+        '<div class="item-row">' +
+          '<div class="item-icon">'+escapeHtml(p.image||'📦')+'</div>' +
+          '<div class="item-info">' +
+            '<div class="item-name">'+escapeHtml(p.name)+(p.hot?' <span style="color:#ef4444;font-size:.7rem;">HOT</span>':'')+'</div>' +
+            '<div class="item-meta">'+escapeHtml(p.category||'')+' · '+escapeHtml(p.seller)+' · 库存 '+(p.stock||0)+' · '+escapeHtml(p.unit)+'</div>' +
+          '</div>' +
+          '<div class="item-price">¥'+(p.price||0).toFixed(2)+'</div>' +
+          '<div class="item-actions">' +
+            '<button class="btn btn-sm btn-outline" onclick="showProductEdit('+p.id+')">编辑</button>' +
+            '<button class="btn btn-sm btn-danger" onclick="deleteProduct('+p.id+')">删除</button>' +
+          '</div>' +
+        '</div>';
+    });
+    if (!html) html = '<p style="color:#6b7280;text-align:center;padding:40px;">暂无商品</p>';
+    document.getElementById('product-list').innerHTML = html;
+  }).catch(function() { showToast('加载失败，请检查密码是否正确', 'error'); });
+}
+
+function showProductEdit(id) {
+  var isNew = !id;
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = '<div class="modal"><h2>'+(isNew ? '添加商品' : '编辑商品')+'</h2><div id="edit-form-content">加载中...</div></div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+  if (isNew) {
+    renderProductForm(overlay, {});
+  } else {
+    api('/api/products/' + id).then(function(p) {
+      renderProductForm(overlay, p);
+    }).catch(function() { overlay.remove(); showToast('商品不存在', 'error'); });
+  }
+}
+
+function renderProductForm(overlay, p) {
+  var container = overlay.querySelector('#edit-form-content');
+  var isNew = !p.id;
+  container.innerHTML = '' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>名称 *</label><input id="ef-name" value="'+escapeAttr(p.name||'')+'" /></div>' +
+      '<div class="form-group"><label>分类 *</label><select id="ef-category"><option value="生活服务" '+(p.category==='生活服务'?'selected':'')+'>生活服务</option><option value="技术服务" '+(p.category==='技术服务'?'selected':'')+'>技术服务</option><option value="学习资料" '+(p.category==='学习资料'?'selected':'')+'>学习资料</option><option value="兴趣培训" '+(p.category==='兴趣培训'?'selected':'')+'>兴趣培训</option><option value="闲置交易" '+(p.category==='闲置交易'?'selected':'')+'>闲置交易</option></select></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>价格 (元) *</label><input id="ef-price" type="number" step="0.01" value="'+(p.price||'')+'" /></div>' +
+      '<div class="form-group"><label>单位</label><input id="ef-unit" value="'+escapeAttr(p.unit||'次')+'" /></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>库存数量</label><input id="ef-stock" type="number" value="'+(p.stock||0)+'" /></div>' +
+      '<div class="form-group"><label>图标 Emoji</label><input id="ef-image" value="'+escapeAttr(p.image||'📦')+'" /></div>' +
+    '</div>' +
+    '<div class="form-group"><label>描述</label><textarea id="ef-desc">'+escapeHtml(p.description||'')+'</textarea></div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label>卖家</label><input id="ef-seller" value="'+escapeAttr(p.seller||'')+'" /></div>' +
+      '<div class="form-group"><label>联系方式</label><input id="ef-contact" value="'+escapeAttr(p.contact||'')+'" /></div>' +
+    '</div>' +
+    '<div class="form-group"><label><input type="checkbox" id="ef-hot" '+(p.hot?'checked':'')+' /> 标记为热门 (HOT)</label></div>' +
+    '<div style="display:flex;gap:10px;margin-top:16px;">' +
+      '<button class="btn btn-outline" onclick="this.closest(\'.modal-overlay\').remove()">取消</button>' +
+      '<button class="btn btn-primary btn-block" id="btn-save">'+(isNew ? '创建' : '保存修改')+'</button>' +
+    '</div>';
+
+  container.querySelector('#btn-save').addEventListener('click', function() {
+    var data = {
+      name: document.getElementById('ef-name').value.trim(),
+      category: document.getElementById('ef-category').value,
+      price: parseFloat(document.getElementById('ef-price').value),
+      unit: document.getElementById('ef-unit').value.trim(),
+      stock: parseInt(document.getElementById('ef-stock').value) || 0,
+      image: document.getElementById('ef-image').value.trim(),
+      description: document.getElementById('ef-desc').value.trim(),
+      seller: document.getElementById('ef-seller').value.trim(),
+      contact: document.getElementById('ef-contact').value.trim(),
+      hot: document.getElementById('ef-hot').checked
+    };
+    if (!data.name || isNaN(data.price)) { showToast('名称和价格为必填项', 'error'); return; }
+
+    var method = isNew ? 'POST' : 'PUT';
+    var url = isNew ? '/api/admin/products' : ('/api/admin/products/' + p.id);
+    api(url, { method: method, body: data })
+      .then(function() {
+        overlay.remove();
+        showToast(isNew ? '商品已创建' : '商品已更新');
+        loadProducts();
+        loadStats();
+      })
+      .catch(function(e) { showToast(e.message || '操作失败', 'error'); });
+  });
+}
+
+function deleteProduct(id) {
+  if (!confirm('确定要删除该商品吗？此操作不可撤销。')) return;
+  api('/api/admin/products/' + id, { method: 'DELETE' })
+    .then(function() { showToast('商品已删除'); loadProducts(); loadStats(); })
+    .catch(function(e) { showToast(e.message || '删除失败', 'error'); });
+}
+
+// ========== 订单管理 ==========
+function loadOrders() {
+  api('/api/orders').then(function(orders) {
+    var labels = { pending: '待处理', confirmed: '已确认', done: '已完成' };
+    var html = '';
+    orders.slice().reverse().forEach(function(o) {
+      html += '' +
+        '<div class="order-card">' +
+          '<div class="order-header">' +
+            '<strong>#'+o.id+'</strong>' +
+            '<span class="order-status '+o.status+'">'+(labels[o.status]||o.status)+'</span>' +
+          '</div>' +
+          '<div class="order-items">'+(o.items || []).map(function(i) { return escapeHtml(i.name)+' ×'+i.quantity+' (¥'+(i.price||0).toFixed(2)+' · '+escapeHtml(i.seller)+')'; }).join('<br>')+'</div>' +
+          '<div class="order-total">¥'+o.total.toFixed(2)+'</div>' +
+          '<div style="font-size:.82rem;color:#6b7280;margin-top:4px;">'+escapeHtml(o.buyer)+' · '+escapeHtml(o.contact)+' · '+new Date(o.createdAt).toLocaleString('zh-CN')+'</div>' +
+          (o.note ? '<div style="font-size:.8rem;color:#6b7280;">'+escapeHtml(o.note)+'</div>' : '') +
+          (o.proofImage ?
+            '<div style="margin-top:6px;"><a href="'+o.proofImage+'" target="_blank" style="font-size:.78rem;color:#6366f1;">📸 查看付款截图</a>' +
+            '<img src="'+o.proofImage+'" style="max-width:120px;max-height:80px;border-radius:6px;display:block;margin-top:4px;cursor:pointer;" onclick="window.open(\''+o.proofImage+'\')" /></div>'
+            : '') +
+          '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">' +
+            (o.status === 'pending' ? '<button class="btn btn-sm btn-success" onclick="updateOrder('+o.id+',\'confirmed\')">确认收款</button>':'') +
+            (o.status !== 'done' ? '<button class="btn btn-sm btn-primary" onclick="updateOrder('+o.id+',\'done\')">标记完成</button>':'') +
+            '<button class="btn btn-sm btn-danger" onclick="deleteOrder('+o.id+')">删除</button>' +
+          '</div>' +
+        '</div>';
+    });
+    if (!html) html = '<p style="color:#6b7280;text-align:center;padding:40px;">暂无订单</p>';
+    document.getElementById('order-list').innerHTML = html;
+  }).catch(function() { showToast('加载失败', 'error'); });
+}
+
+function updateOrder(id, status) {
+  api('/api/orders/' + id, { method: 'PATCH', body: { status: status } })
+    .then(function() { showToast('订单状态已更新'); loadOrders(); loadStats(); })
+    .catch(function(e) { showToast(e.message, 'error'); });
+}
+
+function deleteOrder(id) {
+  if (!confirm('确定要删除该订单吗？')) return;
+  api('/api/admin/orders/' + id, { method: 'DELETE' })
+    .then(function() { showToast('订单已删除'); loadOrders(); loadStats(); })
+    .catch(function(e) { showToast(e.message, 'error'); });
+}
+
+function deleteAllOrders() {
+  if (!confirm('确定要删除所有订单吗？此操作不可撤销！')) return;
+  api('/api/admin/orders', { method: 'DELETE' })
+    .then(function() { showToast('所有订单已清空'); loadOrders(); loadStats(); })
+    .catch(function(e) { showToast(e.message, 'error'); });
+}
+
+// ========== 收款码管理 ==========
+function loadPaymentPanel() {
+  refreshPaymentStatus();
+}
+
+function refreshPaymentStatus() {
+  api('/api/payment-status')
+    .then(function(status) {
+      var img = document.getElementById('payment-qr-preview');
+      var text = document.getElementById('payment-status-text');
+      var delBtn = document.getElementById('btn-delete-qr');
+      if (status.ready) {
+        img.src = '/api/payment-qr?t=' + Date.now();
+        text.textContent = '✅ 已设置 (' + status.file + ')';
+        text.style.color = '#059669';
+        delBtn.style.display = 'inline-block';
+      } else {
+        img.src = '/api/payment-qr?t=' + Date.now();
+        text.textContent = '⚠️ 尚未上传收款码';
+        text.style.color = '#d97706';
+        delBtn.style.display = 'none';
+      }
+    })
+    .catch(function() {});
+}
+
+function uploadPaymentQR() {
+  var fileInput = document.getElementById('qr-file-input');
+  var file = fileInput.files[0];
+  if (!file) return;
+
+  // 检查格式
+  var allowed = /\.(png|jpg|jpeg|gif|bmp|svg|webp)$/i;
+  if (!allowed.test(file.name)) {
+    showToast('仅支持图片格式：png/jpg/jpeg/gif/bmp/svg/webp', 'error');
+    return;
+  }
+
+  var progress = document.getElementById('upload-progress');
+  progress.style.display = 'block';
+  progress.textContent = '正在上传...';
+
+  // 用 XMLHttpRequest 上传（fetch 不支持进度）
+  var formData = new FormData();
+  formData.append('qrfile', file);
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', apiBase + '/api/admin/payment-qr');
+  xhr.setRequestHeader('x-admin-pass', PASS);
+
+  xhr.onload = function() {
+    progress.style.display = 'none';
+    try {
+      var data = JSON.parse(xhr.responseText);
+      if (xhr.status === 200 && data.ok) {
+        showToast('收款码已上传！学生端支付时将展示你的个人收款码');
+        document.getElementById('qr-file-input').value = '';
+        refreshPaymentStatus();
+        // 更新预览
+        document.getElementById('payment-qr-preview').src = '/api/payment-qr?t=' + Date.now();
+      } else {
+        showToast(data.error || '上传失败', 'error');
+      }
+    } catch(e) {
+      showToast('上传失败，请重试', 'error');
+    }
+  };
+  xhr.onerror = function() {
+    progress.style.display = 'none';
+    showToast('网络错误，请确认服务器已启动', 'error');
+  };
+  xhr.send(formData);
+}
+
+function deletePaymentQR() {
+  if (!confirm('确定要删除当前收款码吗？删除后学生端将显示默认提示图。')) return;
+  api('/api/admin/payment-qr', { method: 'DELETE' })
+    .then(function() {
+      showToast('收款码已删除');
+      document.getElementById('payment-qr-preview').src = '/api/payment-qr?t=' + Date.now();
+      refreshPaymentStatus();
+    })
+    .catch(function(e) { showToast(e.message, 'error'); });
+}
+
+// ========== 重置 ==========
+function resetAll() {
+  if (!confirm('确定要重置所有数据吗？所有商品和订单将恢复到初始状态。此操作不可撤销！')) return;
+  if (!confirm('再次确认：真的要重置吗？')) return;
+  api('/api/admin/reset', { method: 'POST' })
+    .then(function() { showToast('数据已重置'); loadAll(); })
+    .catch(function(e) { showToast(e.message, 'error'); });
+}
+
+// 启动
+loadStats();
+loadProducts();
+</script>
+</body>
+</html>
