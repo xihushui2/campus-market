@@ -621,6 +621,7 @@ app.listen(PORT, '0.0.0.0', () => {
   if (PUBLIC_URL) console.log(`  🌐 公网用户端：${PUBLIC_URL}`);
   console.log(``);
   console.log(`  ⚙️  管理后台：  ${adminUrl}`);
+  console.log(`  🏪  商家中心：  ${PUBLIC_URL ? PUBLIC_URL + '/seller' : LAN_URL + '/seller'}`);
   console.log(`  🔑 管理密码：  ${ADMIN_PASS}`);
   console.log(``);
   console.log(`  💡 在管理后台中你可以：`);
@@ -628,5 +629,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`     - 管理所有订单（确认/完成/删除）`);
   console.log(`     - 查看数据统计`);
   console.log(`     - 重置全部数据`);
+  console.log(``);
+  console.log(`  🏪 商家中心地址：`);
+  console.log(`     ${PUBLIC_URL ? PUBLIC_URL + '/seller' : LAN_URL + '/seller'}`);
   console.log(`${bar}\n`);
 });
